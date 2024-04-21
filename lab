@@ -1,0 +1,109 @@
+#############
+# 1. OVERVIEW
+#############
+
+#  In this lab, we will apply Naive Bayes to a Mushroom data set.
+
+#  You can find a Mushroom data set under Canvas > Week 4 Materials > Lab 4, called Mushroom.csv.
+#  Save it in your working directory. 
+
+#  In the Mushroom data set, there are 8123 observations belonging to 23 species of gilled mushrooms
+#  in the Agaricus and Lepiota Family. There are two types of mushroom in terms of edibility.
+#  If classes=e, the mushroom is edible, if classes=p, the mushroom is poisonous.
+#  We want to tell which mushrooms are edible from those poisonous by looking at some of their characteristics.
+
+
+##################
+# 2. DATA PACKAGES
+##################
+# We will need to install e1071 package for this lab, which is a well-developed public package on CRAN.
+
+#  install package “e1071”
+install.packages("e1071")
+
+# To use the package in an R session, we need to load it in an R session via library()
+library(e1071)
+
+
+##################
+# 3. PREPROCESSING
+##################
+# Different from a clean data set in Mushroom.csv, the null value in mushroom data set is denoted by question mark.
+# Given so, we will slightly adjust our read.csv() function.
+
+#   read in csv file mushroom.csv. Note the NA value represents null value
+mushroom <- read.csv('Mushroom.csv', stringsAsFactors=T, na.strings = NA)
+summary(mushroom)
+
+# Check completion
+nrow(mushroom[!complete.cases(mushroom),])
+nrow(mushroom)
+
+# Recall Naive Bayes is an algorithm depends on probability.
+# To predict a conditional probability, we have to figure out the prior probability
+# of each predictive variables. Therefore, a data set with null value will raise risk
+# for our prediction.
+
+# We can retain observations that do not contain NA(null) value
+mushroom = mushroom[complete.cases(mushroom),]
+nrow(mushroom)
+
+
+##############################
+# 4. TRAINING AND TESTING SETS
+##############################
+
+# Next, we will create train and test sets of the data. We will fit the model with the training
+# set, and use the test set to evaluate the model. We will do a 70/30 split (70% will be training data).
+
+# 70% of original data will be used for training
+sample_size <- floor(0.7 * nrow(mushroom))
+
+# Randomly select index of observations for training
+training_index <- sample(nrow(mushroom), size = sample_size, replace = FALSE)
+train <- mushroom[training_index,]
+test <- mushroom[-training_index,]
+
+
+##################################
+# 5. FITTING AND MODEL PERFORMANCE
+##################################
+
+# There is a Naive Bayes classifier in the e1071 package, loaded into our current
+# session already via function library(e1071). Fit the model to the training data.
+
+# Note the period coming after tilde. It means all the other variables in that dataset
+# will be predictive variable
+mushroom.model <- naiveBayes(classes ~ . , data = train)
+
+# We can explore the detail conditional probabilities for each variables by calling the
+# object mushroom.model itself. 
+mushroom.model
+
+
+# After fitting, run the test data through the model to get the predicted class for each observation.
+# The result of prediction, a vector, will be attached to test set labelled as “class”.
+# The return of prediction is a vector including predicted type of mushroom
+mushroom.predict <- predict(mushroom.model, test, type = 'class')
+
+
+# Show the performance metrics of the model:
+# Pick actual value and predicted value together in a data frame called results
+results <- data.frame(actual = test[,'classes'], predicted = mushroom.predict)
+
+# We can get a popular matrix called confusion matrix via function table to evaluate the performance
+# of our prediction
+table(results)
+
+# columns indicate the number of mushrooms in actual type; likewise, rows indicate the number those
+# in predicted type. 
+# For example, we successfully predicted 1067 mushroom as edible, and 580 as poisonous. However, we
+# mistake 46 edible mushroom for poisonous.
+
+
+# Then calculate the overall accuracy of the prediction using test data:
+results$correct <- ifelse(results$actual==results$predicted,1,0) 
+sum(results$correct)/nrow(results)
+
+# The overall accuracy is higher than [THIS VARIES].
+# It shows that our Naïve Bayes model works very well for this dataset.
